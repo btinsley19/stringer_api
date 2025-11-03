@@ -106,6 +106,10 @@ export interface SourceData {
   source_name: string;
   event_count: number;
   post_count: number;
+  // Bias analytics
+  average_bias_score: number;
+  bias_label_counts: Record<string, number>;
+  bias_labels: string[];
 }
 
 // Parsed event with processed tags

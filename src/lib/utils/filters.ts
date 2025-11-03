@@ -157,34 +157,92 @@ export function getAllSources(events: Event[]): string[] {
 
 
 /**
- * Create source aggregation data
+ * Normalize source URL to a consistent format
+ */
+function normalizeSourceUrl(sourceUrl: string | null | undefined): string {
+  if (!sourceUrl) return 'Unknown Source';
+  
+  // Remove protocol and www, extract just the domain
+  const cleaned = sourceUrl
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '')
+    .split('/')[0] // Get just the domain part
+    .toLowerCase()
+    .trim();
+  
+  return cleaned || 'Unknown Source';
+}
+
+/**
+ * Create source aggregation data with bias analytics
  */
 export function createSourceData(events: Event[], posts: Post[]): Array<{
   source_name: string;
   event_count: number;
   post_count: number;
+  average_bias_score: number;
+  bias_label_counts: Record<string, number>;
+  bias_labels: string[];
 }> {
   const eventCounts: Record<string, number> = {};
   const postCounts: Record<string, number> = {};
+  const biasScores: Record<string, number[]> = {};
+  const biasLabelCounts: Record<string, Record<string, number>> = {};
 
   // Count events by source
   events.forEach(event => {
     eventCounts[event.source_name] = (eventCounts[event.source_name] || 0) + 1;
   });
 
-  // Count posts by source (if we have source info in posts)
+  // Count posts by source and aggregate bias data
   posts.forEach(post => {
-    // Note: posts might not have source_name, so we'll use a placeholder
-    // This would need to be adjusted based on actual post data structure
-    const source = 'Unknown Source'; // Placeholder
+    const source = normalizeSourceUrl(post.source_url);
     postCounts[source] = (postCounts[source] || 0) + 1;
+    
+    // Aggregate bias scores
+    if (post.bias_score) {
+      const score = parseFloat(post.bias_score);
+      if (!isNaN(score)) {
+        if (!biasScores[source]) {
+          biasScores[source] = [];
+        }
+        biasScores[source].push(score);
+      }
+    }
+    
+    // Aggregate bias labels
+    if (post.bias_labels && Array.isArray(post.bias_labels) && post.bias_labels.length > 0) {
+      if (!biasLabelCounts[source]) {
+        biasLabelCounts[source] = {};
+      }
+      post.bias_labels.forEach(label => {
+        biasLabelCounts[source][label] = (biasLabelCounts[source][label] || 0) + 1;
+      });
+    }
   });
 
   const allSources = new Set([...Object.keys(eventCounts), ...Object.keys(postCounts)]);
 
-  return Array.from(allSources).map(source => ({
-    source_name: source,
-    event_count: eventCounts[source] || 0,
-    post_count: postCounts[source] || 0
-  })).sort((a, b) => b.event_count - a.event_count);
+  return Array.from(allSources).map(source => {
+    const scores = biasScores[source] || [];
+    const avgBiasScore = scores.length > 0
+      ? scores.reduce((sum, score) => sum + score, 0) / scores.length
+      : 0;
+    
+    const labelCounts = biasLabelCounts[source] || {};
+    
+    // Get unique labels sorted by frequency
+    const uniqueLabels = Object.keys(labelCounts).sort((a, b) => 
+      labelCounts[b] - labelCounts[a]
+    );
+
+    return {
+      source_name: source,
+      event_count: eventCounts[source] || 0,
+      post_count: postCounts[source] || 0,
+      average_bias_score: avgBiasScore,
+      bias_label_counts: labelCounts,
+      bias_labels: uniqueLabels
+    };
+  }).sort((a, b) => b.post_count - a.post_count);
 }

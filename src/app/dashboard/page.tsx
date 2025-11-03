@@ -63,13 +63,6 @@ export default function DashboardPage() {
   const topTagsData = getTopTagsData(filteredEvents, 20);
   const activityData = getActivityData(filteredEvents, 'day');
   
-  // Debug: Log the data being passed to charts
-  console.log('=== DASHBOARD DEBUG ===');
-  console.log('Total events:', events.length);
-  console.log('Filtered events:', filteredEvents.length);
-  console.log('Top tags data:', topTagsData);
-  console.log('======================');
-  
 
   return (
     <div className="space-y-6">
@@ -127,21 +120,7 @@ export default function DashboardPage() {
         <div className="bg-card border rounded-lg p-6">
           <h3 className="text-lg font-semibold mb-4">Top Tags</h3>
           {topTagsData.length > 0 ? (
-            <div>
-              <div className="mb-4 p-2 bg-gray-100 rounded text-xs">
-                <strong>Debug Data:</strong> {JSON.stringify(topTagsData.slice(0, 5), null, 2)}
-              </div>
-              <div className="mb-4">
-                <strong>Simple List:</strong>
-                {topTagsData.slice(0, 10).map((item, index) => (
-                  <div key={index} className="flex justify-between">
-                    <span>{item.tag}</span>
-                    <span>{item.count}</span>
-                  </div>
-                ))}
-              </div>
-              <TopTagsChart data={topTagsData.slice(0, 10)} />
-            </div>
+            <TopTagsChart data={topTagsData.slice(0, 10)} />
           ) : (
             <div className="h-64 flex items-center justify-center text-muted-foreground">
               No tags data available

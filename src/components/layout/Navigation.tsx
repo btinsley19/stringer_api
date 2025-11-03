@@ -9,7 +9,6 @@ const navigation = [
   { name: 'Events', href: '/events' },
   { name: 'Posts', href: '/posts' },
   { name: 'Sources', href: '/sources' },
-  { name: 'About', href: '/about' },
 ];
 
 export function Navigation() {
